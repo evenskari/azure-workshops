@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Buffers.Text;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using AzureWorkshopApp.Helpers;
 using AzureWorkshopApp.Services;
@@ -7,6 +10,7 @@ using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace AzureWorkshopApp.Controllers
 {
@@ -77,6 +81,32 @@ namespace AzureWorkshopApp.Controllers
             var imageUrls = await _storageService.GetImageUrls();
 
             return new ObjectResult(imageUrls);
+        }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> GetImageNames()
+        {
+            var configValidation = _storageService.ValidateConfiguration();
+
+            if (!configValidation.IsValid()) return BadRequest(configValidation.GetErrors());
+
+            var imageNames = await _storageService.GetImageNames();
+
+            return new ObjectResult(JsonConvert.SerializeObject(imageNames));
+        }
+
+        [HttpGet("[action]/{name}")]
+        public async Task<IActionResult> GetImagesDirect(string name)
+        {
+            var configValidation = _storageService.ValidateConfiguration();
+
+            if (!configValidation.IsValid()) return BadRequest(configValidation.GetErrors());
+
+            var imageBlob = await _storageService.GetImage(name);
+            await imageBlob.FetchAttributesAsync();
+            var bytes = new byte[imageBlob.Properties.Length];
+            await imageBlob.DownloadToByteArrayAsync(bytes, 0);
+            return new ObjectResult(Convert.ToBase64String(bytes));
         }
     }
 }

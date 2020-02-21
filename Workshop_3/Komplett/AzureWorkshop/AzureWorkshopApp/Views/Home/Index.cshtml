@@ -169,11 +169,66 @@
         });
     }
 
-    fetchImageLinks();
+    
+    function fetchImage(name) {
+        $.get("api/Images/getImagesDirect/" + name, function (rawData) {
+            console.log(rawData);
+                     var divContainer = document.getElementById("stored-images");
+                  var imageWrapper = document.createElement("span");
+                    imageWrapper.className = "image-wrapper";
+
+            var imageElement = document.createElement("img");
+            imageElement.src = "data:image/png;base64," + rawData;
+                    imageElement.className = "image";
+
+                    imageWrapper.appendChild(imageElement);
+
+                    divContainer.appendChild(imageWrapper);
+
+        }).fail(error => {
+            var errorContainer = document.getElementById("errors");
+            var paragraph = document.createElement("p");
+            paragraph.appendChild(document.createTextNode(error.responseText ? error.responseText : error.statusCode));
+            errorContainer.appendChild(paragraph);
+        });
+    };
+
+    function fetchImageNames() {
+        $.get("api/Images/GetImageNames", function (fetchedNames) {
+            if (_.isEmpty(fetchedNames))
+                return;
+            var obj = JSON.parse(fetchedNames);
+            console.log(obj);
+            var divContainer = document.getElementById("stored-images");
+            divContainer.innerHTML = "";
+            obj.forEach(name => {
+                fetchImage(name);
+            });
+
+        }).fail(error => {
+            var errorContainer = document.getElementById("errors");
+            var paragraph = document.createElement("p");
+            paragraph.appendChild(document.createTextNode(error.responseText ? error.responseText : error.statusCode));
+            errorContainer.appendChild(paragraph);
+        });
+    }
+
+
+    //Kommenter inn denne funksjonen
+    fetchImageNames();
+
+    //Kommenter ut denne funksjonen
+    //fetchImageLinks();
 
     // Poll for changes
+    // Se om du kan skrive om denne og hente funksjonaliteten for å ikke ha reload på bildene
+    // For tips, se nederst
     setInterval(function () {
-        fetchImageLinks();
+        //Kommenter inn denne funksjonen
+        fetchImageNames();
+
+        //Kommenter ut denne funksjonen
+        //fetchImageLinks();
     },
         5000);
 
@@ -191,4 +246,5 @@
             });
         }
     };
+      // Tips: kanskje legge inn bilde på upload? 
 </script>

@@ -96,5 +96,69 @@ namespace AzureWorkshopApp.Services
 
             return await Task.FromResult(imageUrls);
         }
+
+        public async Task<List<string>> GetImageNames()
+        {
+            List<string> imageNames = new List<string>();
+
+            // Create storagecredentials object by reading the values from the configuration (appsettings.json)
+            StorageCredentials storageCredentials = new StorageCredentials(_storageConfig.AccountName, _storageConfig.AccountKey);
+
+            // Create cloudstorage account by passing the storagecredentials
+            CloudStorageAccount storageAccount = new CloudStorageAccount(storageCredentials, true);
+
+            // Create blob client
+            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+
+            // Get reference to the container
+            CloudBlobContainer container = blobClient.GetContainerReference(_storageConfig.ImageContainer);
+
+            await container.CreateIfNotExistsAsync();
+            BlobContinuationToken continuationToken = null;
+
+            //Call ListBlobsSegmentedAsync and enumerate the result segment returned, while the continuation token is non-null.
+            //When the continuation token is null, the last page has been returned and execution can exit the loop.
+            do
+            {
+                //This overload allows control of the page size. You can return all remaining results by passing null for the maxResults parameter,
+                //or by calling a different overload.
+                BlobResultSegment resultSegment = await container.ListBlobsSegmentedAsync("", true, BlobListingDetails.All, 10, continuationToken, null, null);
+
+                foreach (var blobItem in resultSegment.Results)
+                {
+                    imageNames.Add(blobItem.Uri.Segments[2]);
+                }
+
+                //Get the continuation token.
+                continuationToken = resultSegment.ContinuationToken;
+            }
+
+            while (continuationToken != null);
+
+            return await Task.FromResult(imageNames);
+        }
+
+
+        public async Task<CloudBlockBlob> GetImage(string name)
+        {
+            // Create storagecredentials object by reading the values from the configuration (appsettings.json)
+            StorageCredentials storageCredentials = new StorageCredentials(_storageConfig.AccountName, _storageConfig.AccountKey);
+
+            // Create cloudstorage account by passing the storagecredentials
+            CloudStorageAccount storageAccount = new CloudStorageAccount(storageCredentials, true);
+
+            // Create blob client
+            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+
+            // Get reference to the container
+            CloudBlobContainer container = blobClient.GetContainerReference(_storageConfig.ImageContainer);
+
+            if (!await container.ExistsAsync())
+                return null;
+
+            await container.CreateIfNotExistsAsync();
+
+            return container.GetBlockBlobReference(name);
+        }
     }
 }
